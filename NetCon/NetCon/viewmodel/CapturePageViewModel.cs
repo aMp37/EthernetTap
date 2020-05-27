@@ -5,7 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Dynamic;
 using System.Linq;
+using System.Security.RightsManagement;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Data;
@@ -16,15 +18,22 @@ namespace NetCon.viewmodel
     class CapturePageViewModel : INotifyPropertyChanged
     {
         public event PropertyChangedEventHandler PropertyChanged;
-
         private MainWindowViewModel mMainWindowSharedViewModel;
+        private int bufferSize = 16;
+        private int port = 0;
         private IFrameRepository<Frame> mFramesRepository = FrameRepositoryImpl.instance;
+
+        public bool IsCapturing { get; set; }
+        public int Port { get; set; }
+        public int BufferSize{get;set;}
+        public int FramesCounter { get; set; } = 0;
 
         public CapturePageViewModel(MainWindowViewModel sharedViewModel)
         {
             mMainWindowSharedViewModel = sharedViewModel;
 
-            Task.Run(() => mFramesRepository.startCapture());
+            mFramesRepository.applyListeningConfiguration(port, bufferSize);
+            Task.Run(() => mFramesRepository.startFramesListening());
 
             new SubjectObserver<Frame>(frame =>
             {
@@ -35,13 +44,21 @@ namespace NetCon.viewmodel
             {
                 if (state is CaptureState.CaptureOn)
                 {
-                  //  isCapturing = true;
-                    mMainWindowSharedViewModel.logAction("Rozpoczęto przechwytywanie ramek");
+                    IsCapturing = true;
+                    mMainWindowSharedViewModel.logAction($"Rozpoczęto przechwytywanie ramek");
                 }
                 else if (state is CaptureState.CaptureOff)
                 {
-                  //  isCapturing = false;
-                    mMainWindowSharedViewModel.logInfo("Zakończono przechwytywanie ramek");
+                    IsCapturing = false;
+                    mMainWindowSharedViewModel.logInfo($"Zakończono przechwytywanie ramek");
+                }
+                else if (state is CaptureState.ListeningOn)
+                {
+                    mMainWindowSharedViewModel.logInfo($"Uruchomiono wątek nasłuchujący ruch sieciowy z urządzenia na porcie {port}");
+                }
+                else if (state is CaptureState.ListeningOff)
+                {
+                    mMainWindowSharedViewModel.logInfo($"Zakończono wątek nasłuchujący ruch sieciowy z urządzenia na porcie {port}");
                 }
                 else if (state is CaptureState.CaptureError)
                 {
@@ -50,8 +67,6 @@ namespace NetCon.viewmodel
                 }
             }).Subscribe(mFramesRepository.CaptureState);
         }
-
-        private int port = 0;
 
         public String PortText
         {
@@ -74,9 +89,6 @@ namespace NetCon.viewmodel
             }
         }
 
-
-        private bool isCapturing = false;
-
         private ICommand _startButtonCommand;
         public ICommand StartButtonCommand
         {
@@ -85,9 +97,9 @@ namespace NetCon.viewmodel
                 return _startButtonCommand ?? (_startButtonCommand = new CommandHandler(
                     () =>
                     {
-                        startCapture();
+                        mFramesRepository.startCapture();
                     },
-                    () => { return !isCapturing; }));
+                    () => { return !IsCapturing; }));
             }
         }
 
@@ -99,27 +111,10 @@ namespace NetCon.viewmodel
                 return _stopButtonCommand ?? (_stopButtonCommand = new CommandHandler(
                     () =>
                     {
-                        stopCapture();
+                        mFramesRepository.stopCapture();
                     },
-                    () => { return !isCapturing; }));
+                    () => { return IsCapturing; }));
             }
         }
-
-        private void startCapture()
-        {
-            //TODO przeciążyć start capture o port i rozmiar bufora
-            mFramesRepository.resumeCapture();
-        }
-
-        private void stopCapture()
-        {
-            mFramesRepository.pauseCapture();
-           // mFramesRepository.stopCapture();
-        }
-
-
-
-        public int FramesCounter { get; set; } = 0;
-        public int BufferSize { get; set; } = 0;
     }
 }

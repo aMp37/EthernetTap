@@ -169,7 +169,6 @@ __declspec(dllexport) int startCapture(int port, int (*send_callback)(const char
 
 	//do³¹czenie naszego w¹tku
 	sendToListenerThread.join();
-
 	std::cout << "Zamykanie watku reportThread." << std::endl;
 	reportThread.join();
 
@@ -179,10 +178,13 @@ __declspec(dllexport) int startCapture(int port, int (*send_callback)(const char
 	//Problem nie jest krytyczny bo wszystko zosta³o ju¿ odczytane i zapisane
 	std::cout << "Zamykanie watku readThread." << std::endl;
 
-	auto future = std::async(std::launch::async, &std::thread::join, &readThread);
-	if (future.wait_for(std::chrono::seconds(1)) == std::future_status::timeout) {
-		//raise(SIGTERM);
-	}
+
+	readThread.~thread();
+
+	//auto future = std::async(std::launch::async, &std::thread::join, &readThread);
+	//if (future.wait_for(std::chrono::seconds(1)) == std::future_status::timeout) {
+	//	//raise(SIGTERM);
+	//}
 
 	free((void*)p_ringBuffer);
 	std::cout << "Program zamkniety." << std::endl;

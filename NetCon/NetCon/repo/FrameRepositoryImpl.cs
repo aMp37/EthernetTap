@@ -26,7 +26,8 @@ namespace NetCon.repo
         //TODO tu można zmienić implementację przechwytywacza ramek na jakiś mock   //////////////
         private INetCon netConService = new NetConImpl();
 
-        //TODO można zrobić zmienną typu jakiegoś enum, która będzie informowała observerów o stanie przechwytywania (konfiguracje mdio, rozpoczęcie, etc. oraz błędy)
+        private int bufferSizeMegaBytes = 16;
+        private int port = 0;
 
         //Konfiguracja filtrów
         FiltersConfiguration<Frame> filtersConfig = new FiltersConfiguration<Frame>();
@@ -59,7 +60,7 @@ namespace NetCon.repo
             filtersConfig = config;
         }
 
-        public async void startCapture()
+        public async void startFramesListening()
         {
             try
             {
@@ -70,33 +71,40 @@ namespace NetCon.repo
 
                 netConService.sendAndReceiveMdio();
 
-                string[] strVec = new string[] { "NetCon.exe", "set", "3", "0" };
+                string[] strVec = new string[] { "NetCon.exe", "set", port.ToString(), "0" };   //TODO sprawdzić co wypluwa toString
                 netConService.sendSettings(strVec);
-                captureState.pushNextValue(new repo.CaptureState.CaptureOn());
-                await Task.Run(()=>netConService.startCapture());
-                
+                captureState.pushNextValue(new repo.CaptureState.ListeningOn());
+                await Task.Run(()=>netConService.startCapture(port,bufferSizeMegaBytes));
             }
             catch(Exception e)
             {
-                captureState.pushNextValue(new repo.CaptureState.CaptureError(e));
+               // captureState.pushNextValue(new repo.CaptureState.CaptureError(e));
             }
             
         }
 
-        public void stopCapture()
+        public void stopFramesListening()
         {
-            captureState.pushNextValue(new repo.CaptureState.CaptureOff());
             netConService.stopCapture();
+            captureState.pushNextValue(new repo.CaptureState.ListeningOff());
         }
 
-        public void resumeCapture()
+        public void startCapture()
         {
+            captureState.pushNextValue(new repo.CaptureState.CaptureOn());
             netConService.setCaptureState(true);
         }
 
-        public void pauseCapture()
+        public void stopCapture()
         {
             netConService.setCaptureState(false);
+            captureState.pushNextValue(new repo.CaptureState.CaptureOff());
+        }
+
+        public void applyListeningConfiguration(int _port, int _bufferSizeMegaBytes)
+        {
+            port = _port;
+            bufferSizeMegaBytes = _bufferSizeMegaBytes;
         }
     }
 }

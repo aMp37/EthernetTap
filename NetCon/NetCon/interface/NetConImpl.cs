@@ -80,9 +80,9 @@ namespace NetCon.inter
             fl = f;
         }
 
-        public void startCapture()
+        public void startCapture(int port, int bufferSizeMegaBytes)
         {
-            _startCapture(3, fl, 1024 * 1024 * 16);
+            _startCapture(port, fl, 1024 * 1024 * bufferSizeMegaBytes);
         }
 
         public void stopCapture()

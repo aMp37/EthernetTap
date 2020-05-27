@@ -13,6 +13,8 @@ namespace NetCon.repo
     {
         public class CaptureOn: CaptureState { }
         public class CaptureOff: CaptureState { }
+        public class ListeningOn: CaptureState { }
+        public class ListeningOff: CaptureState { }
         public class CaptureError: CaptureState {
             private Exception error;
             public Exception Error { get { return error; } }
@@ -25,13 +27,12 @@ namespace NetCon.repo
 
     interface IFrameRepository<T>
     {
-
         void applyFilters(FiltersConfiguration<T> config);
+        void applyListeningConfiguration(int port, int bufferSizeMegaBytes);
+        void startFramesListening();
+        void stopFramesListening();
         void startCapture();
         void stopCapture();
-
-        void resumeCapture();
-        void pauseCapture();
 
         Subject<T> FrameSubject { get; }
         Subject<CaptureState> CaptureState { get; }

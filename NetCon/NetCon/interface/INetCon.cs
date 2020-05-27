@@ -16,7 +16,7 @@ namespace NetCon.inter
     };
     interface INetCon
 {
-        void startCapture();
+        void startCapture(int port, int bufferSizeMegaBytes);
         void stopCapture();
         void sendFilter();
 
